@@ -98,6 +98,14 @@ public class QuerydslBasicTest {
         assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 
+    /**
+     * 결과 조회
+     * fetch() : 리스트 조회
+     * fetchOne() : 단 건 조회
+     * fetchFirst() : limit(1).fetchOne()
+     * fetchResults() : 페이징 정보 포함 + total count 쿼리 추가 실행
+     * fetchCount() : count 쿼리로 변경해서 count 수 조회
+     */
     @Test
     public void resultFetch() {
         JPAQueryFactory factory = new JPAQueryFactory(em);
@@ -157,5 +165,45 @@ public class QuerydslBasicTest {
         assertThat(member6.getUsername()).isEqualTo("member6");
         assertThat(memberNull.getUsername()).isNull();
 
+    }
+
+    /**
+     * 페이징
+     */
+    @Test
+    public void paging1() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+    }
+
+    /**
+     * 페이징
+     * 실무에서 페이징 쿼리를 작성할 때, 데이터를 조회하는 쿼리는 여러 테이블을 조인해야 하지만,
+     * count 쿼리는 조인이 필요 없는 경우가 있다.
+     * count 쿼리에 조인이 필요 없는 성능 최적화가 필요하다면 count 전용 쿼리를 별도로 작성해야 한다.
+     */
+    @Test
+    public void paging2() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        QueryResults<Member> queryResults = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetchResults();
+
+        assertThat(queryResults.getTotal()).isEqualTo(4);
+        assertThat(queryResults.getLimit()).isEqualTo(2);
+        assertThat(queryResults.getOffset()).isEqualTo(1);
+        assertThat(queryResults.getResults().size()).isEqualTo(2);
     }
 }
