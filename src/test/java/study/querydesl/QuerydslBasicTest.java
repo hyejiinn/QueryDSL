@@ -302,4 +302,55 @@ public class QuerydslBasicTest {
                 .extracting("username")
                 .containsExactly("teamA", "teamB");
     }
+
+    /**
+     * 조인 - on절
+     * 1. 조인 대상 필터링
+     * 예) 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조인
+     * JPQL: select m, t from Member m left join m.team t on t.name = 'teamA'
+     */
+    @Test
+    public void join_on_filtering() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        // select 가 여러가지 타입으로 나오면 Tuple로 결과를 뽑게 됨
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("teamA"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+
+    }
+
+    /**
+     * 조인 - on절
+     * 2. 연관관계 없는 엔티티 외부 조인
+     * 회원의 이름이 팀 이름과 같은 대상 외부 조인
+     */
+    @Test
+    public void join_on_no_relation() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(team) // 기존 조인 방법은 leftJoin(member.team, team) 이런식으로 사용,
+                // 이건 team의 id로 매칭해주는데 관계 없는 테이블끼리 조인할 때는 leftJoin(team)으로 해서 사용
+                .on(member.username.eq(team.name))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+
+    }
 }
