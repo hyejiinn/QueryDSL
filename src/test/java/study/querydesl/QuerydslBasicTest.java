@@ -6,6 +6,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydesl.dto.MemberDto;
 import study.querydesl.dto.QMemberDto;
@@ -791,12 +793,75 @@ public class QuerydslBasicTest {
 
     }
 
-    private Predicate usernameEq(String usernameCond) {
+    private BooleanExpression usernameEq(String usernameCond) {
         return usernameCond == null ? null : member.username.eq(usernameCond);
     }
-    private Predicate ageEq(Integer ageCond) {
+    private BooleanExpression ageEq(Integer ageCond) {
         return ageCond != null ? member.age.eq(ageCond) : null;
     }
+
+    // 광고 상태 isValid, 날짜가 In : isServiceable
+    private BooleanExpression isServiceable(String usernameCond, Integer ageCond) {
+        return usernameEq(usernameCond).and(ageEq(ageCond));
+    }
+
+    /**
+     * 수정 벌크 연산
+     * 벌크 연산은 영속성 컨텍스트를 무시하고 DB에 바로 전달함
+     * -> DB의 상태와 영속성 컨텍스트의 상태가 달라짐
+     */
+    @Test
+    public void bulkUpdate() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        // count에는 영향을 받은 row 수 반환
+        // member1 = 10 -> 비회원
+        // member2 = 20 -> 비회원
+        // member3 = 30 -> 유지
+        // member4 = 40 -> 유지
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        em.flush(); // 영속성 컨텍스트 초기화(DB와 영속성 컨텍스트가 다르기 때문에..)
+        em.clear();
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member member1 : result) {
+            System.out.println("member = " + member1);
+        }
+
+    }
+
+    @Test
+    public void bulkAdd() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1)) // 기존 숫자에 1 더하기
+                .execute();
+    }
+
+    /**
+     * 삭제 벌크 연산
+     */
+    @Test
+    public void bulkDelete() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
+
+
 
 
 }
