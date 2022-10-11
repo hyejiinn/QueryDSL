@@ -1,5 +1,6 @@
 package study.querydesl.dto;
 
+import com.querydsl.core.annotations.QueryProjection;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ public class MemberDto {
     public MemberDto() {
     }
 
+    @QueryProjection
     public MemberDto(String username, int age) {
         this.username = username;
         this.age = age;
