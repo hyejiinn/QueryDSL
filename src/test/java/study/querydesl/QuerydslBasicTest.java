@@ -861,6 +861,46 @@ public class QuerydslBasicTest {
                 .execute();
     }
 
+    /**
+     * SQL Function 호출하기
+     */
+    @Test
+    public void sqlFunction() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        List<String> result = queryFactory
+                .select(Expressions.stringTemplate("function('replace', {0}, {1}, {2})",
+                        member.username, "member", "M"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    /**
+     * SQL Function 호출하기
+     * : lower와 같은 ANSI 표준 함수들은 queryDSL이 상당부분 내장하고 있기 때문에
+     * member.username.lower() 이런식으로 처리해도 된다.
+     */
+    @Test
+    public void sqlFunction2() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+//                .where(member.username.eq(
+//                        Expressions.stringTemplate("function('lower', {0})", member.username)))
+                .where(member.username.eq(member.username.lower()))
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
 
 
 
