@@ -15,6 +15,7 @@ public class MemberController {
 
     private final MemberJpaRepository memberJpaRepository;
 
+    // @RequestParam 생략 가능 ?
     @GetMapping("/v1/members")
     public List<MemberTeamDto> searchMemberV1(MemberSearchCondition condition) {
         return memberJpaRepository.search(condition);
