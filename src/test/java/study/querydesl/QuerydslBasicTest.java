@@ -627,7 +627,8 @@ public class QuerydslBasicTest {
      */
     @Test
     public void findDtoJPQL() {
-        List<MemberDto> result = em.createQuery("select new study.querydesl.dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
+        List<MemberDto> result = em.createQuery("select new study.querydesl.dto.MemberDto(m.username, m.age) from Member m",
+                        MemberDto.class)
                 .getResultList();
 
         for (MemberDto memberDto : result) {
