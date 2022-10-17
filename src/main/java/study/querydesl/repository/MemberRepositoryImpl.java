@@ -51,7 +51,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 
     @Override
     public Page<MemberTeamDto> searchPageSimple(MemberSearchCondition condition, Pageable pageable) {
-        List<MemberTeamDto> result = queryFactory
+        QueryResults<MemberTeamDto> result = queryFactory
                 .select(
                         new QMemberTeamDto(
                                 member.id,
@@ -71,10 +71,11 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                 )
                 .offset(pageable.getOffset()) // 몇번째부터 시작할거야?
                 .limit(pageable.getPageSize()) // 한 페이지에 몇 개 가져올 것인가?
-                .fetch();
+                .fetchResults();
 
-        int total = result.size();
-        return new PageImpl<>(result, pageable, total);
+        List<MemberTeamDto> content = result.getResults();
+        long total = result.getTotal();
+        return new PageImpl<>(content, pageable, total);
     }
 
     // 데이터 내용과 전체 카운트를 별도로 조회하는 방법
