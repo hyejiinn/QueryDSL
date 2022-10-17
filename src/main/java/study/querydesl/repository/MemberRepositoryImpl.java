@@ -2,13 +2,16 @@ package study.querydesl.repository;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import study.querydesl.dto.MemberSearchCondition;
 import study.querydesl.dto.MemberTeamDto;
 import study.querydesl.dto.QMemberTeamDto;
+import study.querydesl.entity.Member;
 
 import javax.persistence.EntityManager;
 import java.util.List;
@@ -77,7 +80,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
     // 데이터 내용과 전체 카운트를 별도로 조회하는 방법
     @Override
     public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
-        List<MemberTeamDto> result = queryFactory
+        List<MemberTeamDto> content = queryFactory
                 .select(
                         new QMemberTeamDto(
                                 member.id,
@@ -99,7 +102,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                 .fetch();
 
         // 별도로 조회하면 count 쿼리 좀 더 최적화 가능
-        long total = queryFactory
+        JPAQuery<Member> countQuery = queryFactory
                 .select(member)
                 .from(member)
                 .leftJoin(member.team, team)
@@ -108,9 +111,16 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                         teamNameEq(condition.getTeamName()),
                         ageGoe(condition.getAgeGoe()),
                         ageLoe(condition.getAgeLoe())
-                ).fetchCount();
+                );
+//                .fetchCount();
 
-        return new PageImpl<>(result, pageable, total);
+        // Count 쿼리 최적화
+        // count 쿼리가 생략 가능한 경우에 생략해서 처리해준다 스프링 데이터 라이브러리가 처리!
+        // 페이지 시작이면서 컨텐츠 사이즈가 페이지 사이즈보다 작을 때
+        // 마지막 페이지일 때 (offset + 컨텐츠 사이즈를 더해서 전체 사이즈 구함)
+//        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetchCount());
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
+//        return new PageImpl<>(content, pageable, total);
     }
 
     private BooleanExpression usernameEq(String username) {
