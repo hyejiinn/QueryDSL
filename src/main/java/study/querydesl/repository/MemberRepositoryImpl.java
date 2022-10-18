@@ -136,6 +136,52 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
 //    }
 
     // 데이터 내용과 전체 카운트를 별도로 조회하는 방법
+//    @Override
+//    public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
+//        List<MemberTeamDto> content = queryFactory
+//                .select(
+//                        new QMemberTeamDto(
+//                                member.id,
+//                                member.username,
+//                                member.age,
+//                                team.id,
+//                                team.name
+//                        )
+//                ).from(member)
+//                .leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe())
+//                )
+//                .offset(pageable.getOffset())
+//                .limit(pageable.getPageSize())
+//                .fetch();
+//
+//        // 별도로 조회하면 count 쿼리 좀 더 최적화 가능
+//        JPAQuery<Member> countQuery = queryFactory
+//                .select(member)
+//                .from(member)
+//                .leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe())
+//                );
+////                .fetchCount();
+//
+//        // Count 쿼리 최적화
+//        // count 쿼리가 생략 가능한 경우에 생략해서 처리해준다 스프링 데이터 라이브러리가 처리!
+//        // 페이지 시작이면서 컨텐츠 사이즈가 페이지 사이즈보다 작을 때
+//        // 마지막 페이지일 때 (offset + 컨텐츠 사이즈를 더해서 전체 사이즈 구함)
+////        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetchCount());
+//        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
+////        return new PageImpl<>(content, pageable, total);
+//    }
+
+    // fetchResults(), fetchCount() Deprecated
     @Override
     public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
         List<MemberTeamDto> content = queryFactory
@@ -147,7 +193,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                 team.id,
                                 team.name
                         )
-                ).from(member)
+                )
+                .from(member)
                 .leftJoin(member.team, team)
                 .where(
                         usernameEq(condition.getUsername()),
@@ -159,9 +206,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        // 별도로 조회하면 count 쿼리 좀 더 최적화 가능
-        JPAQuery<Member> countQuery = queryFactory
-                .select(member)
+        JPAQuery<Long> countQuery = queryFactory
+                .select(member.count())
                 .from(member)
                 .leftJoin(member.team, team)
                 .where(
@@ -170,15 +216,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         ageGoe(condition.getAgeGoe()),
                         ageLoe(condition.getAgeLoe())
                 );
-//                .fetchCount();
 
-        // Count 쿼리 최적화
-        // count 쿼리가 생략 가능한 경우에 생략해서 처리해준다 스프링 데이터 라이브러리가 처리!
-        // 페이지 시작이면서 컨텐츠 사이즈가 페이지 사이즈보다 작을 때
-        // 마지막 페이지일 때 (offset + 컨텐츠 사이즈를 더해서 전체 사이즈 구함)
-//        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetchCount());
-        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
-//        return new PageImpl<>(content, pageable, total);
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     private BooleanExpression usernameEq(String username) {
